@@ -1,0 +1,34 @@
+p {
+    display: block;
+}
+
+.col-md-4 {
+    text-align: center;
+}
+
+.btn {
+    width: 33.3%;
+    margin: 0 auto;
+}
+
+.link{
+    stroke: #666;
+    stroke-width: 1.5px;
+
+}
+
+marker#end {
+    fill: #666;
+    stroke: #666;
+    stroke-width: 1.5px;
+}
+
+
+.node rect {
+    width: 60,
+    height: 20,
+    fill: "#85b6aa"
+
+    stroke-width: 1.5px;
+    transition: opacity 250ms;
+}
