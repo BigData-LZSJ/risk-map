@@ -81,7 +81,6 @@ def augment_positions(data):
 
 
 if __name__ == "__main__":
-    port = 8000
-    # Set up the development server on port 8000.
+    PORT = 8000
     app.debug = True
-    app.run(port=port)
+    app.run(port=PORT)
