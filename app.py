@@ -3,7 +3,7 @@
 可视化商户关系和风险传递
 """
 from flask import Flask, jsonify, render_template, jsonify
-import random
+#import random
 
 
 app = Flask(__name__)
@@ -18,22 +18,24 @@ def index():
     # 从数据库中得到有多少个map需要展示，这里先返回一个假的
     return render_template("index.html", map_list=[
         {
+            "id": 0,
             "name": "map1",
             "intro": "intro1",
         },
         {
+            "id": 1,
             "name": "map2",
             "intro": "intro2",
         },
         {
+            "id": 2,
             "name": "map2",
             "intro": "intro2",
-        }
-
+        },
     ])
 
 
-@app.route("/ajax/data", methods=["POST"])
+@app.route("/ajax/data/", methods=["POST"])
 @app.route("/ajax/data/<int:data_index>", methods=["POST"])
 def data(data_index=0):
     # 做数据库查询! 返回结果
