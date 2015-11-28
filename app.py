@@ -6,9 +6,9 @@ import os
 import json
 from functools import wraps
 
-from flask import Flask, jsonify, render_template, url_for, request
+from flask import Flask, jsonify, render_template, request
 
-from filter import preprocess_data_filter
+from filter import preprocess_data_filter, AVAILABLE_FILTER_LIST
 
 
 app = Flask(__name__)
@@ -66,9 +66,18 @@ def load_json_from_file(func):
     return _inner_func
 
 
+@app.route("/ajax/filter_list/", methods=["GET", "POST"])
+def filter_list():
+    """
+    Return the filter list."""
+    return jsonify({'filter_list': AVAILABLE_FILTER_LIST})
+
+
 @app.route("/ajax/idx_list/", methods=["GET", "POST"])
 @load_json_from_file
 def idx_list():
+    """
+    Return the idx list of nodes."""
     global json_obj
     return jsonify({'idx_list': [node['idx'] for node in json_obj['nodes']]})
 
@@ -77,23 +86,19 @@ def idx_list():
 @load_json_from_file
 def data():
     global json_obj
-    idx_list = request.form.get('idx_list', [])
-    if isinstance(idx_list, list):
-        idx_set = set(idx_list)
-    elif isinstance(idx_list, str):
-        idx_set = {idx_list}
-    else:
-        idx_set = {}
+    import pdb
+    pdb.set_trace()
+    idx = request.form.get('idx', '')
     _filter = request.form.get('filter', 'single_layer')
-    new_nodes, new_links = {}, {}
-    for idx in idx_set:
-        idx_nodes, idx_links = preprocess_data_filter(json_obj['nodes'],
-                                                      json_obj['links'],
-                                                      idx, _filter)
-        new_nodes.update(idx_nodes)
-        new_nodes.update(idx_links)
-    json_obj['nodes'] = list(new_nodes)
-    json_obj['links'] = list(new_links)
+    new_nodes, new_links, max_degree_p, max_degree_e = preprocess_data_filter(
+        json_obj['nodes'],
+        json_obj['links'],
+        idx, _filter)
+    json_obj['nodes'] = new_nodes
+    print new_nodes, new_links
+    json_obj['links'] = new_links
+    json_obj['maxPDegree'] = max_degree_p
+    json_obj['maxEDegree'] = max_degree_e
     return jsonify(json_obj)
 
 
