@@ -1,28 +1,28 @@
 $( document ).ready(function() {
     var w = 900,
-        h = 500,
-        node,
-        link,
-        labels,
-        root,
-        linkIndexes,
-        typeSize;
+h = 500,
+node,
+link,
+labels,
+root,
+linkIndexes,
+typeSize;
 
-    function tick(e) {
-        link.attr("x1", function(d) { return d.source.x; })
-            .attr("y1", function(d) { return d.source.y; })
-            .attr("x2", function(d) { return d.target.x; })
-            .attr("y2", function(d) { return d.target.y; });
-        
-        node.attr('cx', function(d) { return d.x; })
-            .attr('cy', function(d) { return d.y; });
+function tick(e) {
+    link.attr("x1", function(d) { return d.source.x; })
+    .attr("y1", function(d) { return d.source.y; })
+    .attr("x2", function(d) { return d.target.x; })
+    .attr("y2", function(d) { return d.target.y; });
 
-        labels.attr('transform', function(d) {
-            return 'translate(' + d.x + ',' + d.y + ')';
+node.attr('cx', function(d) { return d.x; })
+    .attr('cy', function(d) { return d.y; });
+
+labels.attr('transform', function(d) {
+    return 'translate(' + d.x + ',' + d.y + ')';
         });
     }
 
-    
+
     function color(d) {
         return (d.prop === 'P') ? '#3182bd' : '#c6dbef';
     }
@@ -37,7 +37,7 @@ $( document ).ready(function() {
         return s;
     }
 
-     nodeSize = nodeSize;
+    nodeSize = nodeSize;
 
     function radius(d) {
         var r = nodeSize(d);
@@ -78,26 +78,26 @@ $( document ).ready(function() {
 
             if (bo) {
                 labels.filter(function(o) {
-                        return isConnected(o, d);
-                    })
-                    .append('svg:text')
+                    return isConnected(o, d);
+                })
+                .append('svg:text')
                     .attr('y', function(o) {
-                            return (o == d) ? (rad + 10) + 'px' : '5px';
-                        })
-                    .style('fill', '#C17021')
+                        return (o == d) ? (rad + 10) + 'px' : '5px';
+                    })
+                .style('fill', '#C17021')
                     .attr('text-anchor', 'middle')
                     .attr('class', 'label')
                     .text(function(o) { return (o !== d) ? o.idx : ''; });
                 node.filter(function(o) {
-                        return o === d;
-                    })
-                    .append('title')
+                    return o === d;
+                })
+                .append('title')
                     .text(function(o) { 
 
-                    str = '';
-                    str = 'ID:'+ o.idx + '\n' + 'Credit Score:'+ o.creditscore + '\n';
+                        str = '';
+                        str = 'ID:'+ o.idx + '\n' + 'Credit Score:'+ o.creditscore + '\n';
 
-                return str; });
+                        return str; });
             }
         };
     }
@@ -113,18 +113,18 @@ $( document ).ready(function() {
         .attr('width', w)
         .attr('height', h);
 
-    function update() {
+    function update( root ) {
         // Restart the force layout
         var edges = [];
 
         root.links.forEach(function(e) { 
-    // Get the source and target nodes
-        var sourceNode = root.nodes.filter(function(n) { return n.idx === e.source; })[0],
-        targetNode = root.nodes.filter(function(n) { return n.idx === e.target; })[0];
+            // Get the source and target nodes
+            var sourceNode = root.nodes.filter(function(n) { return n.idx === e.source; })[0],
+            targetNode = root.nodes.filter(function(n) { return n.idx === e.target; })[0];
 
-    // Add the edge to the array
+        // Add the edge to the array
         edges.push({source: sourceNode, target: targetNode});
-});
+        });
         root.links = edges;
         force
             .nodes(root.nodes)
@@ -147,14 +147,14 @@ $( document ).ready(function() {
         // Update the nodes
         node = vis.selectAll('circle.node')
             .data(root.nodes);
-            
+
         // Enter any new nodes
         node.enter().append('svg:circle')
             .attr('class', 'node')
             .attr('id', function(d) {
-                    return d.prop + d.idx;
-                })
-            .style('fill', color)
+                return d.prop + d.idx;
+            })
+        .style('fill', color)
             .attr('r', radius)
             .on('mouseover', fade(true))
             .on('mouseout', fade(false))
@@ -182,46 +182,67 @@ $( document ).ready(function() {
         // Init fade state
         node.each(fade(false));
 
-        // Button toggles
-//        $('#songsBtn').click(function() {
-//            force.stop();
-//
-//            typeSize = songsTypeSize;
-//
-//            vis.selectAll('circle.node')
-//                .attr('r', radius);
-//
-//            force.charge(charge).start();
-//
-////            $(this).addClass('active');
-////            $('#playsBtn').removeClass('active');
-//            return false;
-//        });
-//        $('#playsBtn').click(function() {
-//            force.stop();
-//
-//            typeSize = playsTypeSize;
-//            
-//            vis.selectAll('circle.node')
-//                .attr('r', radius);
-//
-//            force.charge(charge).start();
-//
-//            $(this).addClass('active');
-//            $('#songsBtn').removeClass('active');
-//            return false;
-//        });
-
     }
+    function optionGenerate(value, label){
+        str = '<option value ="'+value+'">'+label + '</option>';
+        return str;
+    }
+    function load_id_list(){
+        $.ajax({
+            url: "/ajax/id_list",
+        type: "POST",
+        data: {query: 'id_list'},
+        success: function(response){
+            var str='';
+            var obj = $.parseJSON(response);
+            for(value in obj){
+                str = str+ optionGenerate(value, value); 
+            }
+            $("#id_list").append(str);         
+        }
+        }).fail(function(xhr){
+            alert("Request id list failed! Msg:"+xhr);
 
-    // Load the json data
-    d3.json('static/js/data.json', function(error,json) {
-        console.log(window.location.pathname);
-        if (error) return console.warn(error);
-        console.log(json);
-        root = json;
-        update();
+        });
+    } 
+    function load_filter_list(){
+        $.ajax({
+            url: "/ajax/filter",
+        type: "POST",
+        data: {query: 'filter_list'},
+        success: function(response){
+            var str='';
+            var obj = $.parseJSON(response);
+            for(value in obj){
+                str = str+ optionGenerate(value, value); 
+            }
+            $("#filter_list").append(str);         
+        }
+        }).fail(function(xhr){
+            alert("Request filter list failed! Msg:"+xhr);
+        });
+    } 
+
+    $("#submit").click(function(event){
+        event.preventDefault();
+        plot_d3_network();
     });
 
+    load_id_list();
+    load_filter_list();
+    function plot_d3_network(){
+        id = $("#id_list").val();
+        filter = $("#filter_list").val();
+        $.ajax({
+            url:"ajax/data",
+            type: "POST",
+            data: {'id': id, 'filter': filter},
+            success: function(response){
+                var obj = $.parseJSON(response);
+                update( obj );
+
+            }
+        });
+    }
 });
 
