@@ -35,23 +35,7 @@ def index():
 
     """
     # 从数据库中得到有多少个map需要展示，这里先返回一个假的
-    return render_template("index.html", map_list=[
-        {
-            "id": 0,
-            "name": "map1",
-            "intro": "intro1",
-        },
-        {
-            "id": 1,
-            "name": "map2",
-            "intro": "intro2",
-        },
-        {
-            "id": 2,
-            "name": "map2",
-            "intro": "intro2",
-        },
-    ])
+    return render_template("index.html")
 
 
 def load_json_from_file(func):
@@ -86,8 +70,6 @@ def idx_list():
 @load_json_from_file
 def data():
     global json_obj
-    import pdb
-    pdb.set_trace()
     idx = request.form.get('idx', '')
     _filter = request.form.get('filter', 'single_layer')
     new_nodes, new_links, max_degree_p, max_degree_e = preprocess_data_filter(
@@ -95,7 +77,6 @@ def data():
         json_obj['links'],
         idx, _filter)
     json_obj['nodes'] = new_nodes
-    print new_nodes, new_links
     json_obj['links'] = new_links
     json_obj['maxPDegree'] = max_degree_p
     json_obj['maxEDegree'] = max_degree_e
