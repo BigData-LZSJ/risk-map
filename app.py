@@ -2,11 +2,30 @@
 """
 可视化商户关系和风险传递
 """
-from flask import Flask, jsonify, render_template, jsonify
-#import random
+import os
+import json
+from functools import wraps
+
+from flask import Flask, jsonify, render_template, request
+
+from filter import preprocess_data_filter, AVAILABLE_FILTER_LIST
 
 
 app = Flask(__name__)
+
+json_obj = None
+here = os.path.dirname(os.path.abspath(__file__))
+
+
+@app.after_request
+def add_header(response):
+    """
+    Add headers to both force latest IE rendering engine or Chrome Frame,
+    and also to cache the rendered page for 10 minutes.
+    """
+    response.headers['X-UA-Compatible'] = 'IE=Edge,chrome=1'
+    response.headers['Cache-Control'] = 'public, max-age=0'
+    return response
 
 
 @app.route("/")
@@ -16,68 +35,52 @@ def index():
 
     """
     # 从数据库中得到有多少个map需要展示，这里先返回一个假的
-    return render_template("index.html", map_list=[
-        {
-            "id": 0,
-            "name": "map1",
-            "intro": "intro1",
-        },
-        {
-            "id": 1,
-            "name": "map2",
-            "intro": "intro2",
-        },
-        {
-            "id": 2,
-            "name": "map2",
-            "intro": "intro2",
-        },
-    ])
+    return render_template("index.html")
+
+
+def load_json_from_file(func):
+    """
+    Load json from file on need."""
+    @wraps(func)
+    def _inner_func():
+        global json_obj
+        if json_obj is None:
+            json_obj = json.load(open(os.path.join(here, 'static/data/private-data.json')))
+        return func()
+    return _inner_func
+
+
+@app.route("/ajax/filter_list/", methods=["GET", "POST"])
+def filter_list():
+    """
+    Return the filter list."""
+    return jsonify({'filter_list': AVAILABLE_FILTER_LIST})
+
+
+@app.route("/ajax/idx_list/", methods=["GET", "POST"])
+@load_json_from_file
+def idx_list():
+    """
+    Return the idx list of nodes."""
+    global json_obj
+    return jsonify({'idx_list': [node['idx'] for node in json_obj['nodes']]})
 
 
 @app.route("/ajax/data/", methods=["POST"])
-@app.route("/ajax/data/<int:data_index>", methods=["POST"])
-def data(data_index=0):
-    # 做数据库查询! 返回结果
-    # 这里先返回个假的
-    result = {
-        'nodes': [
-            {
-                'id': 0,
-                'name': 'hihihihi',
-                'startup_time': '2003-1-2',
-                'type': 'inc'
-            },
-            {
-                'id': 1,
-                'name': 'company2',
-                'startup_time': '2002-1-2',
-                'type': 'inc'
-            }
-
-        ],
-        'links': [
-            {
-                'from': 0,
-                'to': 1,
-                'weight': 0.5,
-                'type': 'father-son'
-            }
-        ]
-    };
-    augment_positions(result);
-    return jsonify(result);
-
-
-def augment_positions(data):
-    X_INC = 200
-    Y_INC = 100
-    X_START = 100
-    Y_START = 100
-    for node in data["nodes"]:
-        node["x"] = X_START = X_START + X_INC
-        node["y"] = Y_START = Y_START + Y_INC
-
+@load_json_from_file
+def data():
+    global json_obj
+    idx = request.form.get('idx', '')
+    _filter = request.form.get('filter', 'single_layer')
+    new_nodes, new_links, max_degree_p, max_degree_e = preprocess_data_filter(
+        json_obj['nodes'],
+        json_obj['links'],
+        idx, _filter)
+    json_obj['nodes'] = new_nodes
+    json_obj['links'] = new_links
+    json_obj['maxPDegree'] = max_degree_p
+    json_obj['maxEDegree'] = max_degree_e
+    return jsonify(json_obj)
 
 
 if __name__ == "__main__":

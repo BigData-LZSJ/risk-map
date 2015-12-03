@@ -3,8 +3,6 @@ risk-map
 可视化
 * d3.js
 * flask
-* mysql
-
 
 pre-request
 ----------------
@@ -23,12 +21,12 @@ pre-request
 TODO
 ----------------
 
-- [ ] 数据库schema定下来之后写model部分
-- [ ] node的位置摆放怎么设计 (maybe参考[d3-process-map](https://github.com/nylen/d3-process-map), 我还没看)
+- [x] 数据库schema定下来之后写model部分... 额... 现在暂时不用model
+- [x] node的位置摆放怎么设计: 使用了force框架自由形式的摆放
 - [ ] d3前端
-  - [ ] node样式设计 (感觉节点数是不是比d3-process-map的demo要多很多. 是不是弄个scroll view, 而且允许zoom in/out比较好)
+  - [ ] node样式设计: 感觉现在只展示一部分的话，size大小差距有点大，感觉不要用线性的size，用N型函数是不是比较好看一点
   - [ ] link的样式设计, 怎么表现不同的联系
-  - [ ] 各种node/link的hover/click事件都还没做, 比如显示node/link详细信息, 跳转到node详细信息页面之类的?
+  - [ ] hover/click: 去掉fade效果，在一旁展示选中节点的详细信息. 然后节点太多不好选，是不是应该提供个可以补全的输入框，另外是不是不应该直接把所有节点返回。。太多了。浏览器感觉有点吃不消。。。分类选是不是比较好
 
 
 Working Flow
