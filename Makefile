@@ -13,4 +13,4 @@ clean-pyc:
 
 deploy:
 	./decrypt.sh
-	gunicorn app:app
+	gunicorn app:app --keep-alive 6
