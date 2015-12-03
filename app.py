@@ -45,7 +45,7 @@ def load_json_from_file(func):
     def _inner_func():
         global json_obj
         if json_obj is None:
-            json_obj = json.load(open(os.path.join(here, 'static/js/data.json')))
+            json_obj = json.load(open(os.path.join(here, 'static/data/private-data.json')))
         return func()
     return _inner_func
 
