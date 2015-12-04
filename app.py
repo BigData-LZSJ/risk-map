@@ -13,7 +13,6 @@ from filter import preprocess_data_filter, AVAILABLE_FILTER_LIST
 
 app = Flask(__name__)
 
-json_obj = None
 here = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -43,10 +42,8 @@ def load_json_from_file(func):
     Load json from file on need."""
     @wraps(func)
     def _inner_func():
-        global json_obj
-        if json_obj is None:
-            json_obj = json.load(open(os.path.join(here, 'static/data/private-data.json')))
-        return func()
+        json_obj = json.load(open(os.path.join(here, 'static/data/private-data.json')))
+        return func(json_obj)
     return _inner_func
 
 
@@ -59,17 +56,15 @@ def filter_list():
 
 @app.route("/ajax/idx_list/", methods=["GET", "POST"])
 @load_json_from_file
-def idx_list():
+def idx_list(json_obj):
     """
     Return the idx list of nodes."""
-    global json_obj
     return jsonify({'idx_list': [node['idx'] for node in json_obj['nodes']]})
 
 
 @app.route("/ajax/data/", methods=["POST"])
 @load_json_from_file
-def data():
-    global json_obj
+def data(json_obj):
     idx = request.form.get('idx', '')
     _filter = request.form.get('filter', 'single_layer')
     new_nodes, new_links, max_degree_p, max_degree_e = preprocess_data_filter(
