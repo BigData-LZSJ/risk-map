@@ -9,8 +9,6 @@ AVAILABLE_FILTER_LIST = [
 
 def preprocess_data_filter(nodes, links, idx, _filter):
     if _filter == 'single_layer':
-        print idx
-        print links[0]['source']
         new_links = [link for link in links if link['source'] == idx or
                      link['target'] == idx]
         new_nodes_idx_list = []

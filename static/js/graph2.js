@@ -115,6 +115,10 @@ $( document ).ready(function() {
 
   function update( res ) {
     // Restart the force layout
+    vis.selectAll('g').remove();
+    vis.selectAll('line').remove();
+    vis.selectAll('circle').remove();
+
     root = res;
     var edges = [];
     console.log(root.links);
