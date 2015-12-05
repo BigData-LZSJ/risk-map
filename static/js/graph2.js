@@ -2,24 +2,30 @@ $( document ).ready(function() {
   // load the configuration file
   $.getScript("/static/js/conf.js", goRender);
 });
+
 function goRender() {
   var w = 900,
       h = 500,
-      node,
+      ENode,
+      PNode,
       link,
       labels,
       root,
       linkIndexes,
-      typeSize;
+      typeSize,
+      last_click;
 
   function tick(e) {
+    // set new location for nodes
     link.attr("x1", function(d) { return d.source.x; })
       .attr("y1", function(d) { return d.source.y; })
       .attr("x2", function(d) { return d.target.x; })
       .attr("y2", function(d) { return d.target.y; });
 
-    node.attr('cx', function(d) { return d.x; })
+    ENode.attr('cx', function(d) { return d.x; })
       .attr('cy', function(d) { return d.y; });
+    PNode.attr('x', function(d) { return d.x - radius(d); })
+      .attr('y', function(d) { return d.y - radius(d); });
 
     labels.attr('transform', function(d) {
       return 'translate(' + d.x + ',' + d.y + ')';
@@ -28,15 +34,24 @@ function goRender() {
 
 
   function color(d) {
-    return (d.prop === 'E') ? E_NODE_COLOR: P_NODE_COLOR;
+    function ecolor(rating) {
+      rating = rating.replace(/[^A-D]/g, '');
+      console.log(rating);
+      var c = E_NODE_COLOR_DICT[rating];
+      return (c == undefined) ? E_NODE_NULL_COLOR: c;
+    }
+    return (d.prop === 'E') ? ecolor(d.rating): P_NODE_COLOR;
   }
 
   function nodeSize(d) {
     var s;
     if (d.prop === 'E') {
-      s = d.count / root.maxEDegree;
+      //s = d.count / root.maxEDegree;
+      //temp
+      s = 0.25;
     } else {
-      s = P_NODE_MAX_SIZE * d.count / root.maxPDegree;
+      //s = P_NODE_MAX_SIZE * d.count / root.maxPDegree;
+      s = 0.15;
     }
     return s;
   }
@@ -45,10 +60,10 @@ function goRender() {
 
   function radius(d) {
     var r = nodeSize(d);
-    if (d.prop === 'P') {
+    if (d.prop === 'E') {
       r = Math.max(r * 40, 4);
     } else {
-      r = Math.max(r * 25, 2);
+      r = Math.max(r * 20, 2);
     }
     return r;
   }
@@ -64,22 +79,24 @@ function goRender() {
 
 
   function showInfo(d) {
-    var rad = radius(d);
     labels.select('text.label').remove();
-    node.select('title').remove();
+    ENode.select('title').remove();
+    PNode.select('title').remove();
+    var nodeset = null;
+    if (d.prop == 'E') {
+      nodeset = ENode;
+    }
+    else {
+      nodeset = PNode;
+    }
+    var rad = radius(d);
 
-    /*labels.append('svg:text')
-      .attr('y', function(o) {
-        return (o == d) ? (rad + 10) + 'px' : '5px';
-      })
-     .style('fill', '#C17021')
-      .attr('text-anchor', 'middle')
-      .attr('class', 'label')
-     .text(function(o) { return (o !== d) ? o.idx: '';});*/
-    node.filter(function(o) {
-      return o === d;
-    })
+    d3.select(this)
+      //nodeset.filter(function(o) {
+      //return o === d;
+      //})
     // using title to make the tooltip of the hovered node
+      .style("stroke-width", 6)
       .append('title')
       .text(function(o) {
         str = 'idx: '+ o.idx + '\n' + 'Credit Score: '+ o.creditscore;
@@ -119,6 +136,32 @@ function goRender() {
 
   }
 
+  function clickNode(d) {
+    // click event on E Node!
+    if (last_click) {
+      d3.select(last_click['node']).transition()
+        .duration(250)
+        .attr("r", radius(last_click['data']))
+        .attr("stroke", null)
+        .attr("stroke-width", null);
+    }
+    if (d.prop == 'E') {
+      if (!last_click || last_click['node'] != this) {
+        d3.select(this).transition()
+          .duration(500)
+          .attr("r", 1.2 * radius(d))
+          .attr("stroke", "orange")
+          .attr("stroke-width", "2px");
+        last_click = {
+          'node': this,
+          'data': d
+        };
+      }
+      else {
+        last_click = null;
+      }
+    }
+  }
   var force = d3.layout.force()
         .on('tick', tick)
         .size([w, h])
@@ -133,10 +176,6 @@ function goRender() {
   function update( res ) {
     // Restart the force layout
 
-    // remove the old svg items
-    vis.selectAll('g').remove();
-    vis.selectAll('line').remove();
-    vis.selectAll('circle').remove();
 
     root = res;
 
@@ -159,7 +198,7 @@ function goRender() {
       .start();
 
     // Update the links
-    link = vis.selectAll('link.link')
+    link = vis.selectAll('line.link')
       .data(root.links);
 
     // Enter any new links
@@ -172,22 +211,39 @@ function goRender() {
     link.exit().remove();
 
     // Update the nodes
-    node = vis.selectAll('circle.node')
-      .data(root.nodes);
+    ENode = vis.selectAll('circle.enode')
+      .data(root.nodes.filter(function(d){ return d.prop == 'E'; }));
 
     // Enter any new nodes
-    node.enter().append('svg:circle')
-      .attr('class', 'node')
+    ENode.enter().append('svg:circle')
+      .attr('class', 'enode')
       .attr('id', function(d) {
         return d.prop + d.idx;
       })
       .style('fill', color)
       .attr('r', radius)
       .on('mouseover', showInfo)
+      .on('click', clickNode)
+      .call(force.drag);
+
+    PNode = vis.selectAll('rect.pnode')
+      .data(root.nodes.filter(function(d){ return d.prop == 'P'; }));
+
+    // Enter any new nodes
+    PNode.enter().append('svg:rect')
+      .attr('class', 'pnode')
+      .attr('id', function(d) {
+        return d.prop + d.idx;
+      })
+      .style('fill', color)
+      .attr('width', function (d) {return 2 * radius(d);})
+      .attr('height', function (d) {return 2 * radius(d);})
+      .on('mouseover', showInfo)
       .call(force.drag);
 
     // Exit any old nodes
-    node.exit().remove();
+    ENode.exit().remove();
+    PNode.exit().remove();
 
     // Build fast lookup of links
     linkIndexes = {};

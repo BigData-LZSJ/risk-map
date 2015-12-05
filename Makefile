@@ -1,4 +1,12 @@
 GUNICORN_PID_FILE := .gunicorn_pid
+GUNICORN_LOG_FILE := /var/log/gunicorn/riskmap.log
+
+ifndef GUNICORN_ACCESS_LOG_FILE
+G_ACCESS_OPTION := 
+else
+G_ACCESS_OPTION := --access-logfile $(GUNICORN_ACCESS_LOG_FILE)
+endif
+
 run: dep
 	@ #source "./venv/bin/activate" && python app.py
 	./venv/bin/python app.py
@@ -33,7 +41,7 @@ ifneq ($(wildcard ${GUNICORN_PID_FILE}),)
 endif
 
 deploy_myvps: dep decrypt only_gunicorn
-	./venv/bin/gunicorn app:app -b 127.0.0.1:9999 -D --pid=${GUNICORN_PID_FILE}
+	./venv/bin/gunicorn app:app -b 127.0.0.1:9999 -D --pid=${GUNICORN_PID_FILE} --log-file ${GUNICORN_LOG_FILE} ${G_ACCESS_OPTION}
 
 clean:
 	@ rm -f .decrypted
