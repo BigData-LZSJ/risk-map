@@ -33,13 +33,12 @@ def index():
     When you request the root path, you'll get the index.html template.
 
     """
-    # 从数据库中得到有多少个map需要展示，这里先返回一个假的
     return render_template("index.html")
 
 
 def load_json_from_file(func):
     """
-    Load json from file on need."""
+    Load json from file wrapper."""
     @wraps(func)
     def _inner_func():
         json_obj = json.load(open(os.path.join(here, 'static/data/private-data.json')))
