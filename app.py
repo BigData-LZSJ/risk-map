@@ -58,7 +58,7 @@ def filter_list():
 def idx_list(json_obj):
     """
     Return the idx list of nodes."""
-    return jsonify({'idx_list': [node['idx'] for node in json_obj['nodes']]})
+    return jsonify({'idx_list': [node['idx'] for node in json_obj['nodes']][:200]})
 
 
 @app.route("/ajax/data/", methods=["POST"])

@@ -36,7 +36,6 @@ function goRender() {
   function color(d) {
     function ecolor(rating) {
       rating = rating.replace(/[^A-D]/g, '');
-      console.log(rating);
       var c = E_NODE_COLOR_DICT[rating];
       return (c == undefined) ? E_NODE_NULL_COLOR: c;
     }
@@ -140,7 +139,7 @@ function goRender() {
     // click event on E Node!
     if (last_click) {
       d3.select(last_click['node']).transition()
-        .duration(250)
+        .duration(50)
         .attr("r", radius(last_click['data']))
         .attr("stroke", null)
         .attr("stroke-width", null);
@@ -148,10 +147,10 @@ function goRender() {
     if (d.prop == 'E') {
       if (!last_click || last_click['node'] != this) {
         d3.select(this).transition()
-          .duration(500)
+          .duration(100)
           .attr("r", 1.2 * radius(d))
           .attr("stroke", "orange")
-          .attr("stroke-width", "2px");
+          .attr("stroke-width", "1px");
         last_click = {
           'node': this,
           'data': d
