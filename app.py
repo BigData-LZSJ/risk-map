@@ -5,16 +5,20 @@
 import os
 import json
 from functools import wraps
+import pdb
 
 from flask import Flask, jsonify, render_template, request
 
-from filter import preprocess_data_filter, AVAILABLE_FILTER_LIST
+import filter  
 
 
 app = Flask(__name__)
 
 here = os.path.dirname(os.path.abspath(__file__))
 
+
+data_file = os.path.join(here, 'static/data/private-data.json')
+hash_file = os.path.join(here, 'static/data/hash_table.json')
 
 @app.after_request
 def add_header(response):
@@ -41,7 +45,7 @@ def load_json_from_file(func):
     Load json from file wrapper."""
     @wraps(func)
     def _inner_func():
-        json_obj = json.load(open(os.path.join(here, 'static/data/private-data.json')))
+        json_obj = json.load(open(data_file))
         return func(json_obj)
     return _inner_func
 
@@ -50,7 +54,7 @@ def load_json_from_file(func):
 def filter_list():
     """
     Return the filter list."""
-    return jsonify({'filter_list': AVAILABLE_FILTER_LIST})
+    return jsonify({'filter_list': filter.AVAILABLE_FILTER_LIST})
 
 
 @app.route("/ajax/idx_list/", methods=["GET", "POST"])
@@ -64,12 +68,12 @@ def idx_list(json_obj):
 @app.route("/ajax/data/", methods=["POST"])
 @load_json_from_file
 def data(json_obj):
+    print "here! submitted"
     idx = request.form.get('idx', '')
     _filter = request.form.get('filter', 'single_layer')
-    new_nodes, new_links, max_degree_p, max_degree_e = preprocess_data_filter(
-        json_obj['nodes'],
-        json_obj['links'],
-        idx, _filter)
+    obj_filter = filter.Filter(json_obj['nodes'], json_obj['links'], idx, _filter, hash_file)
+
+    new_links, new_nodes, max_degree_p, max_degree_e = obj_filter.preprocess_data_filter()
     json_obj['nodes'] = new_nodes
     json_obj['links'] = new_links
     json_obj['maxPDegree'] = max_degree_p
