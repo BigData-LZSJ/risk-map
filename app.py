@@ -68,7 +68,6 @@ def idx_list(json_obj):
 @app.route("/ajax/data/", methods=["POST"])
 @load_json_from_file
 def data(json_obj):
-    print "here! submitted"
     idx = request.form.get('idx', '')
     _filter = request.form.get('filter', 'single_layer')
     obj_filter = filter.Filter(json_obj['nodes'], json_obj['links'], idx, _filter, hash_file)

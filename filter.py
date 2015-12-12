@@ -22,8 +22,6 @@ class Filter(object):
         if self._filter == self.available_filter_list[0]:
             neighbor_vertex, neighbor_links = self.bfs(0,1)
             new_nodes, max_degree_p, max_degree_e = self.wrapper(neighbor_vertex) 
-            print new_nodes
-            print neighbor_links
 
             return neighbor_links, new_nodes, max_degree_p, max_degree_e         
         if self._filter == self.available_filter_list[1]:
