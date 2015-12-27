@@ -2,6 +2,7 @@
 var DATA_URL = "/ajax/data/";
 var FILTER_LIST_URL = "/ajax/filter_list/";
 var IDX_LIST_URL = "/ajax/idx_list/";
+var EXPAND_DATA_URL = '/ajax/expand/';
 
 // property list of node E or P; make them list for easy use of d3
 var PROPERTY_LIST_E = [
@@ -47,3 +48,6 @@ var E_NODE_COLOR_DICT = {
 
 var LINK_MAX_DIS = 40;
 var LINK_MIN_DIS = 8;
+
+/* tick times */
+var INITIAL_TICK_TIMES = 500;

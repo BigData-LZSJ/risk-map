@@ -6,6 +6,7 @@ $( document ).ready(function() {
 function goRender() {
   var w = 780,
       h = 505,
+      ENodeGroup,
       ENode,
       PNode,
       link,
@@ -14,7 +15,9 @@ function goRender() {
       linkIndexes,
       typeSize,
       last_click;
-  var times = 500;
+
+  var times = INITIAL_TICK_TIMES;
+
   function tick(e) {
     if(times < 0){
       return;
@@ -26,8 +29,13 @@ function goRender() {
       .attr("x2", function(d) { return d.target.x; })
       .attr("y2", function(d) { return d.target.y; });
 
-    ENode.attr('cx', function(d) { return d.x; })
-      .attr('cy', function(d) { return d.y; });
+    // use ENodeGroup now for credit score labels
+    ENodeGroup.attr("transform", function(d) {
+      return 'translate(' + [d.x, d.y] + ')';
+    });
+
+    //ENode.attr('cx', function(d) { return d.x; })
+    //.attr('cy', function(d) { return d.y; });
     PNode.attr('x', function(d) { return d.x - radius(d); })
       .attr('y', function(d) { return d.y - radius(d); });
 
@@ -35,7 +43,6 @@ function goRender() {
       return 'translate(' + d.x + ',' + d.y + ')';
     });
   }
-
 
   function color(d) {
     function ecolor(rating) {
@@ -147,29 +154,64 @@ function goRender() {
   function clickNode(d) {
     // click event on E Node!
     if (last_click) {
-      d3.select(last_click['node']).transition()
+      last_click['node'].transition() // this is a previous-selected node by d3
         .duration(50)
         .attr("r", radius(last_click['data']))
         .attr("stroke", null)
         .attr("stroke-width", null);
     }
     if (d.prop == 'E') {
-      if (!last_click || last_click['node'] != this) {
-        d3.select(this).transition()
+      // get the circle under ENodeGroup
+      var this_circle = d3.select(this).select('circle');
+      if (!last_click || last_click['node'] != this_circle) {
+        // need highlighting
+        this_circle.transition()
           .duration(100)
           .attr("r", 1.2 * radius(d))
           .attr("stroke", "black")
           .attr("stroke-width", "1px");
+        // expand the 1-d neighbors of this new circle
+        expandNodeNeighbor(this_circle);
         last_click = {
-          'node': this,
+          'node': this_circle,
           'data': d
         };
       }
       else {
+        // need unhightlighting
         last_click = null;
       }
     }
   }
+
+  function expandNodeNeighbor (enode) {
+    var alreadyExistNeighbor = [];
+    forceLinks.forEach(function (l) {
+      if (l.source == enode) {
+        alreadyExistNeighbor.push(l.target.idx);
+      }
+      else if (l.target == enode) {
+        alreadyExistNeighbor.push(l.source.idx);
+      }
+    });
+    $.ajax({
+      url: EXPAND_DATA_URL,
+      method: 'POST',
+      data: {
+        data: JSON.stringify(
+          {
+            idx: enode.idx,
+            neighbors: alreadyExistNeighbor
+          })
+      },
+      success: function (res) {
+        // Directly use root here... not so graceful... but it should work
+        // just call update!
+        update(res, false); // fromscratch=false
+      }
+    });
+  }
+
   var margin = {top: -5, right: -5, bottom: -5, left: -5};
   var width = w - margin.left - margin.right,
       height = h - margin.top - margin.bottom;
@@ -177,8 +219,12 @@ function goRender() {
         .on('tick', tick)
         .size([w, h])
         .linkDistance(linkDistance)
-  //.gravity(0.05)
         .charge(charge);
+
+  // use force.links() and force.nodes() for graceful exapnsion
+  var forceLinks = force.links();
+  var forceNodes = force.nodes();
+
   var zoom = d3.behavior.zoom()
         .center([width / 2, height / 2])
         .scaleExtent([0.1, 10])
@@ -190,6 +236,20 @@ function goRender() {
         .append('g')
         .attr("transform", "translate(" + margin.left + "," + margin.right + ")")
         .call(zoom);
+
+  /* marker defs */
+  vis.append("defs").selectAll("marker")
+    .data(["father"])
+    .enter().append("marker")
+    .attr("id", function(d) { return d; })
+    .attr("viewBox", "0 -3 6 6")
+    .attr("refX", 13) // 6 + 8 - 1
+    .attr("refY", 0)
+    .attr("markerWidth", 6)
+    .attr("markerHeight", 6)
+    .attr("orient", "auto")
+    .append("path")
+    .attr('d', "M 0,-3 L 6,0 L 0,3 z"); // moveto, lineto, close
 
   function zoomed() {
     vis.attr("transform",
@@ -228,7 +288,7 @@ function goRender() {
     target_zoom = zoom.scale() * (1 + factor * direction);
 
     if (target_zoom < extent[0] || target_zoom > extent[1]) { return false; }
-    console.log(view.x);
+    //console.log(view.x);
 
     translate0 = [(center[0] - view.x) / view.k, (center[1] - view.y) / view.k];
     view.k = target_zoom;
@@ -239,56 +299,46 @@ function goRender() {
 
     interpolateZoom([view.x, view.y], view.k);
   }
+
   d3.selectAll("#zoom_in").on('click', zoomClick);
   d3.selectAll("#zoom_out").on('click', zoomClick);
 
-  function update( res ) {
-    // Restart the force layout
 
-    root = res;
+  function update (res, fromscratch) {
 
-    // Manually map the source and target node of each link by idx(name)
-    var edges = [];
-    root.links.forEach(function(e) {
+    if (fromscratch) {
+      // remove all old force nodes and links
+      forceNodes = res.nodes;
+      forceLinks = [];
+    }
+    else {
+      // concat the new nodes into force nodes
+      forceNodes = forceNodes.concat(res.nodes);
+    }
+
+    res.links.forEach(function(l) {
+      // Manually map the source and target node of each link by idx(name)
       // Get the source and target nodes
-      var sourceNode = root.nodes.filter(function(n) { return n.idx === e.source; })[0],
-          targetNode = root.nodes.filter(function(n) { return n.idx === e.target; })[0];
-
+      var sourceNode = forceNodes.filter(function(n) { return n.idx === l.source; })[0],
+          targetNode = forceNodes.filter(function(n) { return n.idx === l.target; })[0];
       // Add the edge to the array
-      edges.push({source: sourceNode, target: targetNode, link_weight: e.link_weight,
-                  link_property: e.link_property});
+      // And we need weight and property too
+      forceLinks.push({source: sourceNode, target: targetNode, link_weight: l.link_weight,
+                       link_property: l.link_property});
     });
-    root.links = edges;
-
-    // start force
-    force
-      .nodes(root.nodes)
-      .links(root.links)
-      .start();
-
-    // markers
-    vis.append("defs").selectAll("marker")
-      .data(["father"])
-      .enter().append("marker")
-      .attr("id", function(d) { return d; })
-      .attr("viewBox", "0 -5 10 10")
-      .attr("refX", 18) // 10 + 8
-      .attr("refY", 0)
-      .attr("markerWidth", 6)
-      .attr("markerHeight", 6)
-      .attr("orient", "auto")
-      .append("path")
-      .attr('d', "M 0,-5 L 10,0 L 0,5 z"); // moveto, lineto, close
 
     // Update the links
     link = vis.selectAll('line.link')
-      .data(root.links);
+      .data(forceLinks);
 
     // Enter any new links
     link.enter().append('svg:line')
       .attr('class', function(d){
         if (d.link_property == 'FATHER') {
           return 'link father';
+        }
+        else if (d.source.prop == 'P' || d.target.prop == 'P') {
+          return 'link people';
         }
         else {
           return 'link other';
@@ -306,30 +356,43 @@ function goRender() {
     // Exit any old links
     link.exit().remove();
 
-    // 还是remove掉, 否则会覆盖
-    vis.selectAll('circle.enode').remove();
-    vis.selectAll('circle.pnode').remove();
+    if (fromscratch) {
+      // 还是remove掉, 否则会覆盖
+      vis.selectAll('g.enode').remove();
+      vis.selectAll('circle.pnode').remove();
+    }
 
-    // Update the nodes
-    ENode = vis.selectAll('circle.enode')
-      .data(root.nodes.filter(function(d){ return d.prop == 'E'; }));
+    /* Enterprise nodes */
+    var enodeData = vis.selectAll('g.enode')
+          .data(forceNodes.filter(function(d){ return d.prop == 'E'; }));
 
-    // Enter any new nodes
-    ENode.enter().append('svg:circle')
+    ENodeGroup = enodeData.enter()
+      .append('svg:g')
       .attr('class', 'enode')
+      .on('click', clickNode)
+      .on('mouseover', showInfo);
+
+    ENode = ENodeGroup.append("circle")
       .attr('id', function(d) {
         return d.prop + d.idx;
       })
       .style('fill', color)
-      .attr('r', radius)
-      .on('mouseover', showInfo)
-      .on('click', clickNode);
+      .attr('r', radius);
     //.call(force.drag);
 
-    PNode = vis.selectAll('rect.pnode')
-      .data(root.nodes.filter(function(d){ return d.prop == 'P'; }));
+    // creditscore text label
+    ENodeGroup.append("text")
+      .attr('class', 'creditscore')
+      .text(function (d) {
+        return "" + d.creditscore;
+      })
+      .attr('dx', -4)
+      .attr('dy', 2);
 
-    // Enter any new nodes
+    /* Person nodes */
+    PNode = vis.selectAll('rect.pnode')
+      .data(forceNodes.filter(function(d){ return d.prop == 'P'; }));
+
     PNode.enter().append('svg:rect')
       .attr('class', 'pnode')
       .attr('id', function(d) {
@@ -341,36 +404,40 @@ function goRender() {
       .on('mouseover', showInfo);
     //.call(force.drag);
 
-    // Exit any old nodes
-    ENode.exit().remove();
+    // remove unneeded... in fact nothing will be call, as we only expand
+    enodeData.exit().remove();
     PNode.exit().remove();
 
-    // Build fast lookup of links
+    /* Build fast lookup of links */
     linkIndexes = {};
-    root.links.forEach(function(d) {
+    forceLinks.forEach(function(d) {
       linkIndexes[d.source + ',' + d.target] = 1;
       linkIndexes[d.target + ',' + d.source] = 1;
     });
 
-    // Build labels
+    /* Build labels */
     labels = vis.selectAll('g.labelParent')
-      .data(root.nodes);
+      .data(forceNodes);
 
     labels.enter().append('svg:g')
       .attr('class', 'labelParent');
 
     labels.exit().remove();
 
-    // static layout
-    //     times = 1000
-    //   while(times --){
-    //     setTimeout(tick, 5*(times));
-    // }
+    // reset the time counter
+    times = INITIAL_TICK_TIMES;
+    // start force
+    force
+      .nodes(forceNodes)
+      .links(forceLinks)
+      .start();
   }
+
   function optionGenerate(value, label){
     var str = '<option value ="'+value+'">'+label + '</option>';
     return str;
   }
+
   function load_id_list(){
     $.ajax({
       url: IDX_LIST_URL,
@@ -389,6 +456,7 @@ function goRender() {
 
     });
   }
+
   function load_filter_list(){
     $.ajax({
       url: FILTER_LIST_URL,
@@ -405,7 +473,7 @@ function goRender() {
     }).fail(function(xhr){
       alert("Request filter list failed! Msg:"+xhr);
     });
-  } 
+  }
 
   $("#submit").click(function(event){
     event.preventDefault();
@@ -421,10 +489,11 @@ function goRender() {
       url: DATA_URL,
       type: "POST",
       data: {'idx': id, 'filter': filter},
-      success: function(response){
-        update( response );
+      success: function(res){
+        update(res, true);
       }
     });
   }
+
 }
 
