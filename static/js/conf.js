@@ -26,20 +26,24 @@ var PROPERTY_LIST_P = [
 
 
 // d3 plot configuration
-P_NODE_MAX_SIZE = 0.5;
-P_NODE_COLOR = "#7B68EE";
+var P_NODE_MAX_SIZE = 0.5;
+var P_NODE_COLOR = "#7B68EE";
 
-E_NODE_NULL_COLOR = "#BEBEBE";
+var E_NODE_NULL_COLOR = "#BEBEBE";
 
-E_NODE_COLOR_DICT = {
+var E_NODE_COLOR_DICT = {
   "AAA": "#00FF00",
-  "AA": "#54FF9F",
-  "A": "#98F5FF",
-  "BBB": "#00E5EE",
-  "BB": "#2E8B57",
-  "B": "#EAA520",
-  "CCC": "#A89420",
-  "CC": "#B8860B",
-  "C": "#A0522D",
-  "D": "#111111"
+  "AA": "#00FF00",
+  "A": "#00FF00",
+  "BBB": "#f0ad4e",
+  "BB": "#f0ad4e",
+  "B": "#f0ad4e",
+  "CCC":  "#d9534f",
+  "CC": "#d9534f",
+  "C": "#d9534f",
+  "D": "#d9534f"
 };
+
+
+var LINK_MAX_DIS = 40;
+var LINK_MIN_DIS = 8;

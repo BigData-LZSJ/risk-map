@@ -59,14 +59,14 @@ function goRender() {
     return s;
   }
 
-  nodeSize = nodeSize;
-
   function radius(d) {
     var r = nodeSize(d);
     if (d.prop === 'E') {
-      r = Math.max(r * 40, 4);
+      // r = Math.max(r * 40, 4);
+      r = 8;
     } else {
-      r = Math.max(r * 20, 2);
+      //r = Math.max(r * 20, 2);
+      r = 3;
     }
     return r;
   }
@@ -74,6 +74,11 @@ function goRender() {
   function charge(d, i) { 
     var r = nodeSize(d);
     return -r * 1000;
+  }
+
+  function linkDistance(link) {
+    var linkdis = (LINK_MAX_DIS - LINK_MIN_DIS) * (1 - link.link_weight) + LINK_MIN_DIS;
+    return linkdis;
   }
 
   function isConnected(a, b) {
@@ -110,7 +115,7 @@ function goRender() {
   function setNodeInfo(o) {
     var info_body = d3.select("#info-table > table > tbody");
     info_body.selectAll("tr").remove();
-    var info_dict = null;
+    var info_list = null;
     if (o.prop == "E") {
       info_list = PROPERTY_LIST_E;
     }
@@ -153,7 +158,7 @@ function goRender() {
         d3.select(this).transition()
           .duration(100)
           .attr("r", 1.2 * radius(d))
-          .attr("stroke", "orange")
+          .attr("stroke", "black")
           .attr("stroke-width", "1px");
         last_click = {
           'node': this,
@@ -171,7 +176,7 @@ function goRender() {
   var force = d3.layout.force()
         .on('tick', tick)
         .size([w, h])
-        .linkDistance(50)
+        .linkDistance(linkDistance)
   //.gravity(0.05)
         .charge(charge);
   var zoom = d3.behavior.zoom()
@@ -240,7 +245,6 @@ function goRender() {
   function update( res ) {
     // Restart the force layout
 
-
     root = res;
 
     // Manually map the source and target node of each link by idx(name)
@@ -251,7 +255,8 @@ function goRender() {
           targetNode = root.nodes.filter(function(n) { return n.idx === e.target; })[0];
 
       // Add the edge to the array
-      edges.push({source: sourceNode, target: targetNode});
+      edges.push({source: sourceNode, target: targetNode, link_weight: e.link_weight,
+                  link_property: e.link_property});
     });
     root.links = edges;
 
@@ -261,18 +266,49 @@ function goRender() {
       .links(root.links)
       .start();
 
+    // markers
+    vis.append("defs").selectAll("marker")
+      .data(["father"])
+      .enter().append("marker")
+      .attr("id", function(d) { return d; })
+      .attr("viewBox", "0 -5 10 10")
+      .attr("refX", 18) // 10 + 8
+      .attr("refY", 0)
+      .attr("markerWidth", 6)
+      .attr("markerHeight", 6)
+      .attr("orient", "auto")
+      .append("path")
+      .attr('d', "M 0,-5 L 10,0 L 0,5 z"); // moveto, lineto, close
+
     // Update the links
     link = vis.selectAll('line.link')
       .data(root.links);
 
     // Enter any new links
     link.enter().append('svg:line')
-      .attr('class', 'link')
+      .attr('class', function(d){
+        if (d.link_property == 'FATHER') {
+          return 'link father';
+        }
+        else {
+          return 'link other';
+        }
+      })
       .attr('source', function(d) { return d.source; })
-      .attr('target', function(d) { return d.target; });
+      .attr('target', function(d) { return d.target; })
+      .attr("marker-end", function(d) {
+        if (d.link_property == 'FATHER')
+          return "url(#father)";
+        else
+          return "";
+      });
 
     // Exit any old links
     link.exit().remove();
+
+    // 还是remove掉, 否则会覆盖
+    vis.selectAll('circle.enode').remove();
+    vis.selectAll('circle.pnode').remove();
 
     // Update the nodes
     ENode = vis.selectAll('circle.enode')
@@ -332,7 +368,7 @@ function goRender() {
     // }
   }
   function optionGenerate(value, label){
-    str = '<option value ="'+value+'">'+label + '</option>';
+    var str = '<option value ="'+value+'">'+label + '</option>';
     return str;
   }
   function load_id_list(){
@@ -342,7 +378,7 @@ function goRender() {
       data: {query: 'idx_list'},
       success: function(response){
         var str='';
-        for (value in response.idx_list){
+        for (var value in response.idx_list){
           str = str+ optionGenerate(response.idx_list[value],
                                     response.idx_list[value]);
         }
@@ -360,7 +396,7 @@ function goRender() {
       data: {query: 'filter_list'},
       success: function(response){
         var str='';
-        for(value in response.filter_list){
+        for(var value in response.filter_list){
           str = str+ optionGenerate(response.filter_list[value],
                                     response.filter_list[value]);
         }
@@ -379,9 +415,8 @@ function goRender() {
   //load_id_list();
   load_filter_list();
   function plot_d3_network(){
-    //id = $("#id_list").val();
-    id = $("#search").val();
-    filter = $("#filter_list").val();
+    var id = $("#search").val();
+    var filter = $("#filter_list").val();
     $.ajax({
       url: DATA_URL,
       type: "POST",
