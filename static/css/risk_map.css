@@ -37,14 +37,22 @@ margin-top: 10px;
 
 .link {
     stroke: #666;
-    stroke-width: 1.5px;
+    stroke-width: 1px;
 }
 
 .link.father {
-    stroke: #666;
-    stroke-width: 1.5px;
+}
+
+.link.people {
+    stroke-dasharray: 0,2 1;
 }
 
 /*.link.other {
     stroke-dasharray: 0,2 1;
 }*/
+
+
+/* for credit score text label */
+text.creditscore {
+    font-size: 5px;
+}

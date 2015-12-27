@@ -9,7 +9,7 @@ import pdb
 
 from flask import Flask, jsonify, render_template, request
 
-import filter  
+import filter
 
 
 app = Flask(__name__)
@@ -70,8 +70,9 @@ def idx_list(json_obj):
 def data(json_obj):
     idx = request.form.get('idx', '')
     _filter = request.form.get('filter', 'single_layer')
-    return reterive_data(idx, _filter, [])
-def reterive_data(idx, _filter, exclude)
+    return reterive_data(idx, _filter, [], json_obj)
+
+def reterive_data(idx, _filter, exclude, json_obj):
     obj_filter = filter.Filter(json_obj['nodes'], json_obj['links'], idx, _filter, exclude )
 
     new_links, new_nodes, max_degree_p, max_degree_e = obj_filter.preprocess_data_filter()
@@ -85,18 +86,9 @@ def reterive_data(idx, _filter, exclude)
 @load_json_from_file
 def expand(json_obj):
     reqform = json.loads(request.form.get('data'))
-    
     idx = reqform['idx']
     neighbors = reqform['neighbors']
-    _filter = request.form.get('filter', 'single_layer')
-    return reterive_data(idx, 'single_layer', neighbors)
-
-    new_links, new_nodes, max_degree_p, max_degree_e = obj_filter.preprocess_data_filter()
-    json_obj['nodes'] = new_nodes
-    json_obj['links'] = new_links
-    json_obj['maxPDegree'] = max_degree_p
-    json_obj['maxEDegree'] = max_degree_e
-    return jsonify(json_obj)
+    return reterive_data(idx, 'single_layer', neighbors, json_obj)
 
 
 if __name__ == "__main__":
