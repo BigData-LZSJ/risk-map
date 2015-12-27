@@ -70,7 +70,26 @@ def idx_list(json_obj):
 def data(json_obj):
     idx = request.form.get('idx', '')
     _filter = request.form.get('filter', 'single_layer')
-    obj_filter = filter.Filter(json_obj['nodes'], json_obj['links'], idx, _filter, hash_file)
+    return reterive_data(idx, _filter, [])
+def reterive_data(idx, _filter, exclude)
+    obj_filter = filter.Filter(json_obj['nodes'], json_obj['links'], idx, _filter, exclude )
+
+    new_links, new_nodes, max_degree_p, max_degree_e = obj_filter.preprocess_data_filter()
+    json_obj['nodes'] = new_nodes
+    json_obj['links'] = new_links
+    json_obj['maxPDegree'] = max_degree_p
+    json_obj['maxEDegree'] = max_degree_e
+    return jsonify(json_obj)
+
+@app.route("/ajax/expand/", methods=["POST"])
+@load_json_from_file
+def expand(json_obj):
+    reqform = json.loads(request.form.get('data'))
+    
+    idx = reqform['idx']
+    neighbors = reqform['neighbors']
+    _filter = request.form.get('filter', 'single_layer')
+    return reterive_data(idx, 'single_layer', neighbors)
 
     new_links, new_nodes, max_degree_p, max_degree_e = obj_filter.preprocess_data_filter()
     json_obj['nodes'] = new_nodes
