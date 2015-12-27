@@ -1,18 +1,20 @@
+# -*- coding: utf-8 -*-
+
 import json
 import os
 import sys
+
 ALGORITHM_DICT = {
-        'bfs': '../static/data/bfs_out.csv',
-        'pagerank': '../static/data/pr_nonregister_out.csv',
-        'naive_bayes': '../static/data/bn_directed_out.csv'
-    }
+    'bfs': '../static/data/bfs_out.csv',
+    'pagerank': '../static/data/pr_nonregister_out.csv',
+    'bayes': '../static/data/bn_directed_out.csv'
+}
 OUTPUT_FILE = '../static/data/out_table.json'
 
 
 def load_data_from_json():
-    json_obj = json.load(open(os.path.join(here, '../static/data/private-data.json')))
+    json_obj = json.load('../static/data/private-data.json')
     return json_obj
-   
 
 def generate_hash_table(json_obj):
     hash_table = {}
@@ -28,12 +30,11 @@ def generate_out_table():
     for key, value in ALGORITHM_DICT.iteritems():
         with open( value, 'r') as _infile:
             lines = _infile.readlines()
-            index = []
             _dict = {}
             for i, line in enumerate(lines):
                 vals = line.strip().split(',')
                 if i == 0:
-                    index = vals
+                    continue
                 else:
                     _dict[vals[0]] = vals[1]
             output_table[key] = _dict

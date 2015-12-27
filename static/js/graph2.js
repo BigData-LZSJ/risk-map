@@ -2,7 +2,7 @@ $( document ).ready(function() {
   // load the configuration file
   $.getScript("/static/js/conf.js", goRender);
 });
-
+var force;
 function goRender() {
   var w = 780,
       h = 505,
@@ -24,6 +24,7 @@ function goRender() {
     }
     times --;
     // set new location for nodes
+    //forceLinks.attr("x1", function(d) { return d.source.x; })
     link.attr("x1", function(d) { return d.source.x; })
       .attr("y1", function(d) { return d.source.y; })
       .attr("x2", function(d) { return d.target.x; })
@@ -31,6 +32,8 @@ function goRender() {
 
     // use ENodeGroup now for credit score labels
     ENodeGroup.attr("transform", function(d) {
+    //ENodeGroup.attr("transform", function(d) {
+    //ENodeGroup.attr("transform", function(d) {
       return 'translate(' + [d.x, d.y] + ')';
     });
 
@@ -93,7 +96,7 @@ function goRender() {
   }
 
 
-  function showInfo(d) {
+  function showInfo (d) {
     labels.select('text.label').remove();
     ENode.select('title').remove();
     PNode.select('title').remove();
@@ -116,7 +119,7 @@ function goRender() {
       .text(function(o) {
         str = 'idx: '+ o.idx + '\n' + 'Credit Score: '+ o.creditscore;
         return str; })
-      .each(setNodeInfo);
+      .each(setNodeInfo); // do setNodeInfo for this node
   }
 
   function setNodeInfo(o) {
@@ -131,6 +134,12 @@ function goRender() {
     }
     else {
       return;
+    }
+
+    // current method!
+    if (current_active_method != "origin") {
+      info_list = info_list.concat([{'property_name': '更新后的信用评分',
+                                     'property_attr': current_active_method + 'score'}]);
     }
 
     // append tr to the tbody
@@ -171,7 +180,7 @@ function goRender() {
           .attr("stroke", "black")
           .attr("stroke-width", "1px");
         // expand the 1-d neighbors of this new circle
-        expandNodeNeighbor(this_circle);
+        expandNodeNeighbor(d.idx);
         last_click = {
           'node': this_circle,
           'data': d
@@ -184,28 +193,36 @@ function goRender() {
     }
   }
 
-  function expandNodeNeighbor (enode) {
+  function expandNodeNeighbor (idx) {
     var alreadyExistNeighbor = [];
-    forceLinks.forEach(function (l) {
-      if (l.source == enode) {
+
+    // 只关注树状关系, 不成环. 反映的不是真实的全部的网络拓扑关系
+    forceNodes.forEach(function (n) {
+      alreadyExistNeighbor.push(n.idx);
+    });
+
+    /*forceLinks.forEach(function (l) {
+      if (l.source.idx == idx) {
         alreadyExistNeighbor.push(l.target.idx);
       }
-      else if (l.target == enode) {
+      else if (l.target.idx == idx) {
         alreadyExistNeighbor.push(l.source.idx);
       }
-    });
+    });*/
+
     $.ajax({
       url: EXPAND_DATA_URL,
       method: 'POST',
       data: {
         data: JSON.stringify(
           {
-            idx: enode.idx,
+            idx: idx,
             neighbors: alreadyExistNeighbor
           })
       },
       success: function (res) {
-        // Directly use root here... not so graceful... but it should work
+        // do not need the node itself
+        res.nodes = res.nodes.filter(function (n) { return n.idx != idx; });
         // just call update!
         update(res, false); // fromscratch=false
       }
@@ -215,7 +232,7 @@ function goRender() {
   var margin = {top: -5, right: -5, bottom: -5, left: -5};
   var width = w - margin.left - margin.right,
       height = h - margin.top - margin.bottom;
-  var force = d3.layout.force()
+   force = d3.layout.force()
         .on('tick', tick)
         .size([w, h])
         .linkDistance(linkDistance)
@@ -305,27 +322,28 @@ function goRender() {
 
 
   function update (res, fromscratch) {
+    if (res) {
+      if (fromscratch) {
+        // remove all old force nodes and links
+        forceNodes = res.nodes;
+        forceLinks = [];
+      }
+      else {
+        // concat the new nodes into force nodes
+        forceNodes = forceNodes.concat(res.nodes);
+      }
 
-    if (fromscratch) {
-      // remove all old force nodes and links
-      forceNodes = res.nodes;
-      forceLinks = [];
+      res.links.forEach(function(l) {
+        // Manually map the source and target node of each link by idx(name)
+        // Get the source and target nodes
+        var sourceNode = forceNodes.filter(function(n) { return n.idx === l.source; })[0],
+            targetNode = forceNodes.filter(function(n) { return n.idx === l.target; })[0];
+        // Add the edge to the array
+        // And we need weight and property too
+        forceLinks.push({source: sourceNode, target: targetNode, link_weight: l.link_weight,
+                         link_property: l.link_property});
+      });
     }
-    else {
-      // concat the new nodes into force nodes
-      forceNodes = forceNodes.concat(res.nodes);
-    }
-
-    res.links.forEach(function(l) {
-      // Manually map the source and target node of each link by idx(name)
-      // Get the source and target nodes
-      var sourceNode = forceNodes.filter(function(n) { return n.idx === l.source; })[0],
-          targetNode = forceNodes.filter(function(n) { return n.idx === l.target; })[0];
-      // Add the edge to the array
-      // And we need weight and property too
-      forceLinks.push({source: sourceNode, target: targetNode, link_weight: l.link_weight,
-                       link_property: l.link_property});
-    });
 
     // Update the links
     link = vis.selectAll('line.link')
@@ -356,11 +374,10 @@ function goRender() {
     // Exit any old links
     link.exit().remove();
 
-    if (fromscratch) {
-      // 还是remove掉, 否则会覆盖
-      vis.selectAll('g.enode').remove();
-      vis.selectAll('circle.pnode').remove();
-    }
+    // 还是remove掉, 否则会覆盖
+    vis.selectAll('g.enode').remove();
+    vis.selectAll('circle.pnode').remove();
+
 
     /* Enterprise nodes */
     var enodeData = vis.selectAll('g.enode')
@@ -384,7 +401,11 @@ function goRender() {
     ENodeGroup.append("text")
       .attr('class', 'creditscore')
       .text(function (d) {
-        return "" + d.creditscore;
+        if (current_active_method == 'origin')
+          return "" + d.creditscore;
+        else {
+          return "" + d[current_active_method + 'score'];
+        }
       })
       .attr('dx', -4)
       .attr('dy', 2);
@@ -407,6 +428,11 @@ function goRender() {
     // remove unneeded... in fact nothing will be call, as we only expand
     enodeData.exit().remove();
     PNode.exit().remove();
+
+    // test
+    ENodeGroup = vis.selectAll('g.enode');
+
+    PNode = vis.selectAll('rect.pnode');
 
     /* Build fast lookup of links */
     linkIndexes = {};
@@ -475,6 +501,17 @@ function goRender() {
     });
   }
 
+  function switchMethod () {
+    $("li#method_" + current_active_method).removeClass("active");
+    current_active_method = this.id.slice(7); // global variable
+    $("li#method_" + current_active_method).addClass("active");
+    update(null, false);
+  };
+
+  // tab switch
+  $("li.method").click(switchMethod);
+
+  // submit click
   $("#submit").click(function(event){
     event.preventDefault();
     plot_d3_network();
