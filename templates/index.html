@@ -8,6 +8,7 @@
     <link href="static/css/risk_map.css" rel="stylesheet" />
     <script src="static/js/d3.v3.min.js" charset="utf-8"></script>
     <script src="static/js/jquery-1.11.3.min.js" charset="utf-8"></script>
+    <script src="static/js/bootstrap.min.js" charset="utf-8"></script>
     <!--  <script src="static/js/conf.js"> </script> -->
     <script src="static/js/graph2.js"> </script>
   </head>
@@ -33,15 +34,31 @@
       <div class="container">
         <div class="row">
           <div class="col-md-8">
-            <div id="graph" style="position:relative;" ></div>
+            <div id= "method">
+              <ul class="nav nav-tabs">
+                <li role="presentation" class="method" id= "method_origin"><a>原始数据</a></li>
+                <li role="presentation" id = "method_bfs" class="method"><a>BFS</a></li>
+                <li role="presentation" id="method_pagerank" class="method"><a>PageRank</a></li>
+                <li role="presentation" id="method_bayes" class="method"><a>Naive Bayes</a></li>
+              </ul>
+            </div>
+
+            <div id="graph" style="position:relative;" >
+              <button id="zoom_in">+</button>
+              <button id="zoom_out">-</button>
+
+            </div>
           </div>
           <div class="col-md-4">
             <div class="thumbnail selector-form" >
               <form id = "main_form">
-                <select id="id_list" style="width:100%">
-                  <option value="null" selected = "selected">选择节点</option>
-                </select>
-                <select id="filter_list" style="width:100%">
+                <label>输入查询的节点名</label>
+                <input type="text" class="form-control" id= "search" style="width:100%" />
+                <!--
+                    <select id="id_list" style="width:100%">
+                      <option value="null" selected = "selected">选择节点</option>
+                    </select>-->
+                <select id="filter_list"  class="form-control" style="width:100%">
                   <option value="null" selected = "selected">选择过滤器</option>
                 </select>
                 <button class="btn btn-primary" type="button" id="submit">Submit</button>
@@ -58,7 +75,7 @@
                 </thead>
                 <tbody>
                   <tr>
-                    </tr>
+                  </tr>
                 </tbody>
               </table>
 
@@ -70,6 +87,11 @@
       </div>
     </div>
 
-
+    <script>
+      var current_active_method = "origin";
+      $(document).ready(function() {
+        $("li#method_" + current_active_method).addClass("active");
+      });
+    </script>
   </body>
 </html>

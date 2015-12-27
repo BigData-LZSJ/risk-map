@@ -2,17 +2,22 @@
     text-align: center;
 }
 
-.btn {
-    width: 33.3%;
+#submit{
+margin-top: 10px;
+}
+
+
+#filter_list{
     margin-top: 10px;
 }
 
-.link{
-    stroke: #666;
-    stroke-width: 1.5px;
-
+#method{
+    margin-top: 10px;
 }
 
+#graph{
+    margin: 30px 10px 10px 10px;
+}
 
 .selector-form {
     margin-top: 20px;
@@ -21,4 +26,33 @@
 
 .table>thead>tr>th {
     text-align: center;
+}
+
+#slider {
+    margin-top: 10px;
+    width: 20%;
+}
+
+/* links */
+
+.link {
+    stroke: #666;
+    stroke-width: 1px;
+}
+
+.link.father {
+}
+
+.link.people {
+    stroke-dasharray: 0,2 1;
+}
+
+/*.link.other {
+    stroke-dasharray: 0,2 1;
+}*/
+
+
+/* for credit score text label */
+text.creditscore {
+    font-size: 5px;
 }
