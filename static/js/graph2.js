@@ -1,5 +1,6 @@
 $( document ).ready(function() {
     // load the configuration file
+    $('.dropdown-toggle').dropdown()
     $.getScript("/static/js/conf.js", goRender);
 });
 
@@ -14,7 +15,7 @@ function goRender() {
         linkIndexes,
         typeSize,
         last_click;
-    var times = 100;
+    var times = 500;
     function tick(e) {
         if(times < 0){
             return;
@@ -175,7 +176,7 @@ function goRender() {
                 //.gravity(0.05)
                 .charge(charge);
             var zoom = d3.behavior.zoom()
-                .scale([0.1])
+                .center([width / 2, height / 2])
                 .scaleExtent([0.1, 10])
                 .on("zoom", zoomed);
 
@@ -185,23 +186,57 @@ function goRender() {
                 .append('g')
                 .attr("transform", "translate(" + margin.left + "," + margin.right + ")")
                 .call(zoom);
-            var slider = d3.select("#graph").append("p").append("input")
-                .datum({})
-                .attr("type", "range")
-                .attr("value", zoom.scaleExtent()[0])
-                .attr("min", zoom.scaleExtent()[0])
-                .attr("max", zoom.scaleExtent()[1])
-                .attr("step", (zoom.scaleExtent()[1] - zoom.scaleExtent()[0]) / 100)
-                .on("input", slided);
 
             function zoomed() {
-                console.log("print")
-                    vis.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+                vis.attr("transform",
+                        "translate(" + zoom.translate() + ")" +
+                        "scale(" + zoom.scale() + ")"
+                        );
             }
-            function slided(d){
-                zoom.scale(d3.select(this).property("value"))
-                    .event(vis);
+            function interpolateZoom (translate, scale) {
+                var self = this;
+                return d3.transition().duration(350).tween("zoom", function () {
+                    var iTranslate = d3.interpolate(zoom.translate(), translate),
+                       iScale = d3.interpolate(zoom.scale(), scale);
+                return function (t) {
+                    zoom
+                    .scale(iScale(t))
+                    .translate(iTranslate(t));
+                zoomed();
+                };
+                });
             }
+
+            function zoomClick() {
+                var clicked = d3.event.target,
+                    direction = 1,
+                    factor = 0.2,
+                    target_zoom = 1,
+                    center = [width / 2, height / 2],
+                    extent = zoom.scaleExtent(),
+                    translate = zoom.translate(),
+                    translate0 = [],
+                    l = [],
+                    view = {x: translate[0], y: translate[1], k: zoom.scale()};
+
+                d3.event.preventDefault();
+                direction = (this.id === 'zoom_in') ? 1 : -1;
+                target_zoom = zoom.scale() * (1 + factor * direction);
+
+                if (target_zoom < extent[0] || target_zoom > extent[1]) { return false; }
+                console.log(view.x);
+
+                translate0 = [(center[0] - view.x) / view.k, (center[1] - view.y) / view.k];
+                view.k = target_zoom;
+                l = [translate0[0] * view.k + view.x, translate0[1] * view.k + view.y];
+
+                view.x += center[0] - l[0];
+                view.y += center[1] - l[1];
+
+                interpolateZoom([view.x, view.y], view.k);
+            }
+            d3.selectAll("#zoom_in").on('click', zoomClick);
+            d3.selectAll("#zoom_out").on('click', zoomClick);
 
             function update( res ) {
                 // Restart the force layout
@@ -254,7 +289,7 @@ function goRender() {
                     .attr('r', radius)
                     .on('mouseover', showInfo)
                     .on('click', clickNode);
-                    //.call(force.drag);
+                //.call(force.drag);
 
                 PNode = vis.selectAll('rect.pnode')
                     .data(root.nodes.filter(function(d){ return d.prop == 'P'; }));
@@ -269,7 +304,7 @@ function goRender() {
                     .attr('width', function (d) {return 2 * radius(d);})
                     .attr('height', function (d) {return 2 * radius(d);})
                     .on('mouseover', showInfo);
-                    //.call(force.drag);
+                //.call(force.drag);
 
                 // Exit any old nodes
                 ENode.exit().remove();
@@ -292,10 +327,10 @@ function goRender() {
                 labels.exit().remove();
 
                 // static layout
-           //     times = 1000
-             //   while(times --){
-               //     setTimeout(tick, 5*(times));
-               // }
+                //     times = 1000
+                //   while(times --){
+                //     setTimeout(tick, 5*(times));
+                // }
             }
             function optionGenerate(value, label){
                 str = '<option value ="'+value+'">'+label + '</option>';
@@ -342,10 +377,11 @@ function goRender() {
                 plot_d3_network();
             });
 
-            load_id_list();
+            //load_id_list();
             load_filter_list();
             function plot_d3_network(){
-                id = $("#id_list").val();
+                //id = $("#id_list").val();
+                id = $("#search").val();
                 filter = $("#filter_list").val();
                 $.ajax({
                     url: DATA_URL,
