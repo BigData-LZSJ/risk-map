@@ -53,7 +53,25 @@ function goRender() {
       var c = E_NODE_COLOR_DICT[rating];
       return (c == undefined) ? E_NODE_NULL_COLOR: c;
     }
-    return (d.prop === 'E') ? ecolor(d.rating): P_NODE_COLOR;
+    var rating;
+    if (current_active_method == 'origin') {
+      rating = d.rating;
+    }
+    else {
+      var cur_score = d[current_active_method + 'score'];
+      if (cur_score < 0) {
+        rating = 'E';
+      }
+      else {
+        for (var index in RANK_SCORE_MAP) {
+          if (RANK_SCORE_MAP[index][0] < cur_score) {
+            rating = RANK_SCORE_MAP[index][1];
+            break;
+          }
+        }
+      }
+    }
+    return (d.prop === 'E') ? ecolor(rating): P_NODE_COLOR;
   }
 
   function nodeSize(d) {
@@ -128,6 +146,11 @@ function goRender() {
     var info_list = null;
     if (o.prop == "E") {
       info_list = PROPERTY_LIST_E;
+          // current method!
+      if (current_active_method != "origin") {
+        info_list = info_list.concat([{'property_name': '更新后的信用评分',
+                                       'property_attr': current_active_method + 'score'}]);
+      }
     }
     else if (o.prop == "P") {
       info_list = PROPERTY_LIST_P;
@@ -136,11 +159,6 @@ function goRender() {
       return;
     }
 
-    // current method!
-    if (current_active_method != "origin") {
-      info_list = info_list.concat([{'property_name': '更新后的信用评分',
-                                     'property_attr': current_active_method + 'score'}]);
-    }
 
     // append tr to the tbody
     var rows = info_body
