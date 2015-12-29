@@ -53,7 +53,25 @@ function goRender() {
       var c = E_NODE_COLOR_DICT[rating];
       return (c == undefined) ? E_NODE_NULL_COLOR: c;
     }
-    return (d.prop === 'E') ? ecolor(d.rating): P_NODE_COLOR;
+    var rating;
+    if (current_active_method == 'origin') {
+      rating = d.rating;
+    }
+    else {
+      var cur_score = d[current_active_method + 'score'];
+      if (cur_score < 0) {
+        rating = 'E';
+      }
+      else {
+        for (var index in RANK_SCORE_MAP) {
+          if (RANK_SCORE_MAP[index][0] < cur_score) {
+            rating = RANK_SCORE_MAP[index][1];
+            break;
+          }
+        }
+      }
+    }
+    return (d.prop === 'E') ? ecolor(rating): P_NODE_COLOR;
   }
 
   function nodeSize(d) {
