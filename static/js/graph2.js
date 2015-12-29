@@ -146,6 +146,11 @@ function goRender() {
     var info_list = null;
     if (o.prop == "E") {
       info_list = PROPERTY_LIST_E;
+          // current method!
+      if (current_active_method != "origin") {
+        info_list = info_list.concat([{'property_name': '更新后的信用评分',
+                                       'property_attr': current_active_method + 'score'}]);
+      }
     }
     else if (o.prop == "P") {
       info_list = PROPERTY_LIST_P;
@@ -154,11 +159,6 @@ function goRender() {
       return;
     }
 
-    // current method!
-    if (current_active_method != "origin") {
-      info_list = info_list.concat([{'property_name': '更新后的信用评分',
-                                     'property_attr': current_active_method + 'score'}]);
-    }
 
     // append tr to the tbody
     var rows = info_body
