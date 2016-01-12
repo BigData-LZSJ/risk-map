@@ -13,7 +13,7 @@ OUTPUT_FILE = '../static/data/out_table.json'
 
 
 def load_data_from_json():
-    json_obj = json.load('../static/data/private-data.json')
+    json_obj = json.load(open('../static/data/private-data.json', 'r'))
     return json_obj
 
 def generate_hash_table(json_obj):
