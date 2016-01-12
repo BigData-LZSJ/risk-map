@@ -52,6 +52,11 @@ var LINK_MIN_DIS = 8;
 /* tick times */
 var INITIAL_TICK_TIMES = 500;
 
+var DIFF_RANK_SCORE_MAP = [
+[-100, "C"],
+[100, "B"],
+[700, "A"]
+];
 
 var RANK_SCORE_MAP = [
   [750, "AAA"],
